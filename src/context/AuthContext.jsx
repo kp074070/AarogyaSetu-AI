@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getStoredUsers, saveUsers } from '../data/userData';
+import api from '../services/api';
+import { connectSocket, disconnectSocket } from '../services/socket';
 
 const AuthContext = createContext(null);
 
@@ -7,91 +8,71 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore session on mount
+  // Check for existing session on mount
   useEffect(() => {
-    try {
-      const session = localStorage.getItem('aarogyasetu_session');
-      if (session) {
-        const parsed = JSON.parse(session);
+    const token = localStorage.getItem('aarogyasetu_token');
+    const storedUser = localStorage.getItem('aarogyasetu_user');
+
+    if (token && storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
         setUser(parsed);
+        connectSocket();
+        // Verify token is still valid
+        api.getMe()
+          .then(data => {
+            setUser(data.user);
+            localStorage.setItem('aarogyasetu_user', JSON.stringify(data.user));
+          })
+          .catch(() => {
+            // Token expired — clear session
+            localStorage.removeItem('aarogyasetu_token');
+            localStorage.removeItem('aarogyasetu_user');
+            setUser(null);
+            disconnectSocket();
+          });
+      } catch {
+        localStorage.removeItem('aarogyasetu_user');
       }
-    } catch { /* ignore */ }
+    }
+
     setLoading(false);
   }, []);
 
-  function login(email, password) {
-    const users = getStoredUsers();
-    const found = users.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-    if (!found) {
-      return { success: false, error: 'Invalid email or password' };
-    }
-    // Don't store password in session
-    const sessionUser = { ...found };
-    delete sessionUser.password;
-    setUser(sessionUser);
-    localStorage.setItem('aarogyasetu_session', JSON.stringify(sessionUser));
-    return { success: true, user: sessionUser };
-  }
+  const login = async (email, password) => {
+    const data = await api.login(email, password);
+    localStorage.setItem('aarogyasetu_token', data.token);
+    localStorage.setItem('aarogyasetu_user', JSON.stringify(data.user));
+    setUser(data.user);
+    connectSocket();
+    return data.user;
+  };
 
-  function register(userData) {
-    const users = getStoredUsers();
+  const register = async (userData) => {
+    const data = await api.register(userData);
+    localStorage.setItem('aarogyasetu_token', data.token);
+    localStorage.setItem('aarogyasetu_user', JSON.stringify(data.user));
+    setUser(data.user);
+    connectSocket();
+    return data.user;
+  };
 
-    // Check duplicate email
-    if (users.find(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-      return { success: false, error: 'An account with this email already exists' };
-    }
-
-    const newUser = {
-      id: `USR-${userData.role === 'customer' ? 'C' : 'H'}-${String(users.length + 1).padStart(3, '0')}`,
-      ...userData,
-      avatar: userData.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
-      registeredAt: new Date().toISOString().split('T')[0],
-    };
-
-    users.push(newUser);
-    saveUsers(users);
-
-    // Auto-login after registration
-    const sessionUser = { ...newUser };
-    delete sessionUser.password;
-    setUser(sessionUser);
-    localStorage.setItem('aarogyasetu_session', JSON.stringify(sessionUser));
-    return { success: true, user: sessionUser };
-  }
-
-  function logout() {
+  const logout = () => {
+    localStorage.removeItem('aarogyasetu_token');
+    localStorage.removeItem('aarogyasetu_user');
     setUser(null);
-    localStorage.removeItem('aarogyasetu_session');
-  }
-
-  function updateProfile(updates) {
-    const users = getStoredUsers();
-    const idx = users.findIndex(u => u.id === user.id);
-    if (idx !== -1) {
-      users[idx] = { ...users[idx], ...updates };
-      saveUsers(users);
-      const sessionUser = { ...users[idx] };
-      delete sessionUser.password;
-      setUser(sessionUser);
-      localStorage.setItem('aarogyasetu_session', JSON.stringify(sessionUser));
-    }
-  }
+    disconnectSocket();
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+  return ctx;
 }
-
-export default AuthContext;
