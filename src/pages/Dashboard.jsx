@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2, AlertTriangle, Pill, BedDouble, Users, TrendingUp,
-  TrendingDown, ArrowUpRight, ArrowDownRight, Activity, Clock
+  TrendingDown, ArrowUpRight, ArrowDownRight, Activity, Clock, Bell
 } from 'lucide-react';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,

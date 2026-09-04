@@ -1,26 +1,24 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  LayoutDashboard, Map, Pill, TrendingUp, ArrowLeftRight, Bell,
-  Settings, HelpCircle, Shield, LogOut
+  LayoutDashboard, CalendarCheck, Search, FileHeart, Pill,
+  UserCircle, LogOut, Shield, Heart
 } from 'lucide-react';
 
 const navItems = [
   { section: 'Main', items: [
-    { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/map', label: 'Map View', icon: Map },
-    { path: '/medicine', label: 'Medicine Stock', icon: Pill },
-    { path: '/predictions', label: 'Predictions', icon: TrendingUp },
-    { path: '/redistribution', label: 'Redistribution', icon: ArrowLeftRight },
-    { path: '/alerts', label: 'Alerts', icon: Bell, badge: 12 },
+    { path: '/customer', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/customer/appointments', label: 'My Appointments', icon: CalendarCheck },
+    { path: '/customer/find-phc', label: 'Find PHC', icon: Search },
+    { path: '/customer/health-records', label: 'Health Records', icon: FileHeart },
+    { path: '/customer/medicine-check', label: 'Medicine Check', icon: Pill },
   ]},
-  { section: 'System', items: [
-    { path: '/settings', label: 'Settings', icon: Settings },
-    { path: '/help', label: 'Help & Docs', icon: HelpCircle },
+  { section: 'Account', items: [
+    { path: '/customer/profile', label: 'My Profile', icon: UserCircle },
   ]},
 ];
 
-function Sidebar({ currentPath, onNavigate }) {
+function CustomerSidebar({ currentPath, onNavigate }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
@@ -35,14 +33,14 @@ function Sidebar({ currentPath, onNavigate }) {
   };
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar customer-sidebar">
       <div className="sidebar-header">
-        <div className="sidebar-logo">
-          <Shield size={20} />
+        <div className="sidebar-logo customer-logo">
+          <Heart size={20} />
         </div>
         <div className="sidebar-brand">
-          <h1>AarogyaSetu AI</h1>
-          <span>Healthcare Intelligence</span>
+          <h1>AarogyaSetu</h1>
+          <span>Patient Portal</span>
         </div>
       </div>
 
@@ -58,7 +56,6 @@ function Sidebar({ currentPath, onNavigate }) {
               >
                 <item.icon className="nav-icon" size={18} />
                 <span>{item.label}</span>
-                {item.badge && <span className="nav-badge">{item.badge}</span>}
               </div>
             ))}
           </div>
@@ -69,11 +66,11 @@ function Sidebar({ currentPath, onNavigate }) {
       <div className="sidebar-footer">
         <div className="sidebar-user-info">
           <div className="sidebar-user-avatar">
-            {user?.avatar || 'AD'}
+            {user?.avatar || 'U'}
           </div>
           <div className="sidebar-user-details">
-            <div className="sidebar-user-name">{user?.fullName || 'Admin'}</div>
-            <div className="sidebar-user-role">{user?.designation || 'Hospital Admin'}</div>
+            <div className="sidebar-user-name">{user?.fullName || 'User'}</div>
+            <div className="sidebar-user-role">Patient</div>
           </div>
         </div>
         <button className="sidebar-logout-btn" onClick={handleLogout} title="Logout">
@@ -84,4 +81,4 @@ function Sidebar({ currentPath, onNavigate }) {
   );
 }
 
-export default Sidebar;
+export default CustomerSidebar;

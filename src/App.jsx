@@ -1,51 +1,85 @@
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import Dashboard from './pages/Dashboard';
-import MapView from './pages/MapView';
-import MedicineStock from './pages/MedicineStock';
-import Predictions from './pages/Predictions';
-import Redistribution from './pages/Redistribution';
-import Alerts from './pages/Alerts';
-import PHCDetail from './pages/PHCDetail';
-import ChatAssistant from './components/ChatAssistant';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import HospitalLayout from './layouts/HospitalLayout';
+import CustomerLayout from './layouts/CustomerLayout';
 import './index.css';
 
-const pageConfig = {
-  '/': { title: 'Dashboard Overview', subtitle: 'Real-time healthcare resource monitoring' },
-  '/map': { title: 'Map View', subtitle: 'Geographic distribution of PHCs' },
-  '/medicine': { title: 'Medicine Stock', subtitle: 'Inventory management & tracking' },
-  '/predictions': { title: 'Predictions & Analytics', subtitle: 'AI-powered forecasting' },
-  '/redistribution': { title: 'Resource Redistribution', subtitle: 'AI-recommended resource transfers' },
-  '/alerts': { title: 'Alerts & Notifications', subtitle: 'System-wide alert management' },
-};
+function ProtectedRoute({ children, requiredRole }) {
+  const { user, loading } = useAuth();
 
-function App() {
-  const [currentPath, setCurrentPath] = useState('/');
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-primary)' }}>
+        <div className="loading-spinner" style={{ width: 40, height: 40 }}></div>
+      </div>
+    );
+  }
 
-  const config = pageConfig[currentPath] || pageConfig['/'];
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to={user.role === 'hospital' ? '/' : '/customer'} replace />;
+  }
+
+  return children;
+}
+
+function AppRoutes() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-primary)' }}>
+        <div className="loading-spinner" style={{ width: 40, height: 40 }}></div>
+      </div>
+    );
+  }
 
   return (
+    <Routes>
+      {/* Public routes */}
+      <Route
+        path="/login"
+        element={user ? <Navigate to={user.role === 'hospital' ? '/' : '/customer'} replace /> : <LoginPage />}
+      />
+      <Route
+        path="/register"
+        element={user ? <Navigate to={user.role === 'hospital' ? '/' : '/customer'} replace /> : <RegisterPage />}
+      />
+
+      {/* Hospital routes */}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute requiredRole="hospital">
+            <HospitalLayout />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Customer routes */}
+      <Route
+        path="/customer/*"
+        element={
+          <ProtectedRoute requiredRole="customer">
+            <CustomerLayout />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
     <Router>
-      <div className="app-layout">
-        <Sidebar currentPath={currentPath} onNavigate={setCurrentPath} />
-        <div className="main-content">
-          <Header title={config.title} subtitle={config.subtitle} />
-          <div className="page-content">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/map" element={<MapView />} />
-              <Route path="/medicine" element={<MedicineStock />} />
-              <Route path="/predictions" element={<Predictions />} />
-              <Route path="/redistribution" element={<Redistribution />} />
-              <Route path="/alerts" element={<Alerts />} />
-              <Route path="/phc/:id" element={<PHCDetail />} />
-            </Routes>
-          </div>
-        </div>
-        <ChatAssistant />
-      </div>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </Router>
   );
 }
