@@ -78,7 +78,6 @@ function RegisterPage() {
     if (err2) { setError(err2); return; }
 
     setIsLoading(true);
-    await new Promise(r => setTimeout(r, 800));
 
     const userData = { ...form, role };
     // Clean up fields based on role
@@ -86,6 +85,8 @@ function RegisterPage() {
       delete userData.hospitalName;
       delete userData.registrationId;
       delete userData.designation;
+      // Map gender to lowercase for schema
+      userData.gender = userData.gender?.toLowerCase();
     } else {
       delete userData.aadhaar;
       delete userData.bloodGroup;
@@ -95,13 +96,13 @@ function RegisterPage() {
     }
     delete userData.confirmPassword;
 
-    const result = register(userData);
-    setIsLoading(false);
-
-    if (result.success) {
-      navigate(role === 'hospital' ? '/' : '/customer');
-    } else {
-      setError(result.error);
+    try {
+      const user = await register(userData);
+      navigate(user.role === 'hospital' ? '/' : '/customer');
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 

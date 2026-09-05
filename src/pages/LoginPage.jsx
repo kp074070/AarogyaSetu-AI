@@ -25,16 +25,13 @@ function LoginPage() {
     }
 
     setIsLoading(true);
-    // Simulate slight delay for UX
-    await new Promise(r => setTimeout(r, 600));
-
-    const result = login(email, password);
-    setIsLoading(false);
-
-    if (result.success) {
-      navigate(result.user.role === 'hospital' ? '/' : '/customer');
-    } else {
-      setError(result.error);
+    try {
+      const user = await login(email, password);
+      navigate(user.role === 'hospital' ? '/' : '/customer');
+    } catch (err) {
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -43,7 +40,7 @@ function LoginPage() {
       setEmail('patient@demo.com');
       setPassword('demo1234');
     } else {
-      setEmail('hospital@demo.com');
+      setEmail('admin@demo.com');
       setPassword('demo1234');
     }
     setError('');
@@ -181,7 +178,7 @@ function LoginPage() {
                   <Building2 size={18} />
                   <div>
                     <strong>Hospital Admin</strong>
-                    <span>hospital@demo.com</span>
+                    <span>admin@demo.com</span>
                   </div>
                 </button>
               </div>
