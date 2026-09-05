@@ -3,7 +3,9 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import { createServer } from 'http';
-import { Server as SocketServer } from 'socket.io';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { Server: SocketServer } = require('socket.io');
 
 import authRoutes from './routes/auth.js';
 import phcRoutes from './routes/phcs.js';
